@@ -1,7 +1,8 @@
 import 'package:_2048_game/game/controls.dart';
 import 'package:_2048_game/game/game_logic.dart';
-import 'package:_2048_game/visuals/tile_colors.dart';
+import 'package:_2048_game/visuals/start_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:_2048_game/visuals/tile.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -17,8 +18,6 @@ class _GameScreenState extends State<GameScreen> {
 
   void _handleKey(KeyEvent event) {
     final direction = controls.handleKey(event);
-
-    print('Direction: $direction');
 
     if (direction != null) {
       game.move(direction);
@@ -46,10 +45,38 @@ class _GameScreenState extends State<GameScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    '2048',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        '2048',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 30),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'Score: ${game.score}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+
                   const SizedBox(height: 30),
 
                   Container(
@@ -60,34 +87,23 @@ class _GameScreenState extends State<GameScreen> {
                       color: Colors.grey[700],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                          ),
-                      itemCount: 16,
-                      itemBuilder: (context, index) {
-                        final value = game.board[index];
-
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: tile_colors(value),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Center(
-                            child: Text(
-                              value == 0 ? '' : value.toString(),
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    child: Stack(
+                      children: [
+                        for (int index = 0; index < 16; index++)
+                          AnimatedPositioned(
+                            key: ValueKey(game.board[index].id),
+                            duration: const Duration(milliseconds: 100),
+                            curve: Curves.easeOut,
+                            left: (index % 4) * 120,
+                            top: (index ~/ 4) * 120,
+                            width: 115,
+                            height: 115,
+                            child: Tile(
+                              id: game.board[index].id,
+                              value: game.board[index].value,
                             ),
                           ),
-                        );
-                      },
+                      ],
                     ),
                   ),
                 ],
@@ -151,6 +167,28 @@ class _GameScreenState extends State<GameScreen> {
                           vertical: 12,
                         ),
                         child: Text('NEW GAME', style: TextStyle(fontSize: 18)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StartScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[500],
+                        foregroundColor: Colors.black,
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Text('HOME', style: TextStyle(fontSize: 14)),
                       ),
                     ),
                   ],
