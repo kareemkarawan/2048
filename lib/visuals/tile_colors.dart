@@ -3,28 +3,28 @@ import 'package:flutter/material.dart';
 Color tile_colors(int value) {
   switch (value) {
     case 2:
-      return Colors.white;
+      return const Color(0xFFEEE4DA);
     case 4:
-      return Colors.yellow;
+      return const Color(0xFFEDE0C8);
     case 8:
-      return Colors.orange;
+      return const Color(0xFFF2B179);
     case 16:
-      return Colors.red;
+      return const Color(0xFFF59563);
     case 32:
-      return Colors.pink;
+      return const Color(0xFFF67C5F);
     case 64:
-      return Colors.purple;
+      return const Color(0xFFF65E3B);
     case 128:
-      return Colors.blue;
+      return const Color(0xFFEDCF72);
     case 256:
-      return Colors.green;
+      return const Color(0xFFEDCC61);
     case 512:
-      return Colors.teal;
+      return const Color(0xFFEDC850);
     case 1024:
-      return Colors.indigo;
+      return const Color(0xFFEDC53F);
     case 2048:
-      return Colors.amber;
+      return const Color(0xFFEDC22E);
     default:
-      return Colors.grey[500]!;
+      return const Color(0xFFCDC1B4);
   }
 }

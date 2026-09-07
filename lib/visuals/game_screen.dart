@@ -1,18 +1,24 @@
+import 'package:_2048_game/constants/app_colors.dart';
 import 'package:_2048_game/game/controls.dart';
 import 'package:_2048_game/game/game_logic.dart';
-import 'package:_2048_game/visuals/start_screen.dart';
+import 'package:_2048_game/models/game_save_model.dart';
+import 'package:_2048_game/services/game_storage.dart';
+import 'package:_2048_game/services/score_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:_2048_game/visuals/tile.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final int bestScore;
+  final GameSaveModel? savedGame;
+
+  const GameScreen({super.key, required this.bestScore, this.savedGame});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
-  final GameLogic game = GameLogic();
+  late GameLogic game;
   late final Controls controls;
   final FocusNode _focusNode = FocusNode();
 
@@ -28,8 +34,18 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    game = GameLogic(
+      onGameOver: (score) async {
+        await ScoreStorage.saveScore(score);
+      },
+    );
+    if (widget.savedGame != null) {
+      game.board = widget.savedGame!.board;
+      game.score = widget.savedGame!.score;
+    }
     controls = Controls();
     _focusNode.requestFocus();
+    game.bestScore = widget.bestScore;
   }
 
   @override
@@ -41,6 +57,7 @@ class _GameScreenState extends State<GameScreen> {
       child: Stack(
         children: [
           Scaffold(
+            backgroundColor: AppColors.background,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -53,6 +70,7 @@ class _GameScreenState extends State<GameScreen> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
+                          color: Color(0xFF776E65),
                         ),
                       ),
                       const SizedBox(width: 30),
@@ -74,6 +92,25 @@ class _GameScreenState extends State<GameScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(width: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDE0C8),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'High Score: ${game.bestScore}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
 
@@ -84,30 +121,59 @@ class _GameScreenState extends State<GameScreen> {
                     height: 500,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.grey[700],
+                      color: const Color(0xFFBBADA0),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Stack(
                       children: [
                         for (int index = 0; index < 16; index++)
-                          AnimatedPositioned(
-                            key: ValueKey(game.board[index].id),
-                            duration: const Duration(milliseconds: 100),
-                            curve: Curves.easeOut,
-                            left: (index % 4) * 120,
-                            top: (index ~/ 4) * 120,
-                            width: 115,
-                            height: 115,
-                            child: Tile(
-                              id: game.board[index].id,
-                              value: game.board[index].value,
+                          Positioned(
+                            left: (index % 4) * 122.5,
+                            top: (index ~/ 4) * 122.5,
+                            width: 112.5,
+                            height: 112.5,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFCDC1B4),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
                             ),
                           ),
+                        for (int index = 0; index < 16; index++)
+                          if (game.board[index].value != 0)
+                            AnimatedPositioned(
+                              key: ValueKey(game.board[index].id),
+                              duration: const Duration(milliseconds: 100),
+                              curve: Curves.easeOut,
+                              left: (index % 4) * 122.5,
+                              top: (index ~/ 4) * 122.5,
+                              width: 112.5,
+                              height: 112.5,
+                              child: Tile(
+                                id: game.board[index].id,
+                                value: game.board[index].value,
+                              ),
+                            ),
                       ],
                     ),
                   ),
                 ],
               ),
+            ),
+          ),
+          Positioned(
+            top: 20,
+            left: 20,
+            child: IconButton(
+              onPressed: () async {
+                if (game.score != 0) {
+                  await GameStorage.saveCurrentGame(
+                    GameSaveModel(score: game.score, board: game.board),
+                  );
+                }
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.arrow_back),
             ),
           ),
           if (game.gameOver)
@@ -130,12 +196,29 @@ class _GameScreenState extends State<GameScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
+                      'score:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    Text(
+                      '${game.score}',
+                      style: TextStyle(
+                        fontSize: 30,
+                        color: Colors.orange,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
                       'GAME OVER',
                       style: TextStyle(
                         fontSize: 42,
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.none,
-                        color: Colors.orange,
+                        color: AppColors.darkText,
                       ),
                     ),
 
@@ -160,6 +243,9 @@ class _GameScreenState extends State<GameScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Padding(
                         padding: EdgeInsets.symmetric(
@@ -171,24 +257,33 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const StartScreen(),
-                          ),
-                        );
+                      onPressed: () async {
+                        if (game.score != 0) {
+                          await GameStorage.saveCurrentGame(
+                            GameSaveModel(score: game.score, board: game.board),
+                          );
+                        }
+                        Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey[500],
                         foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
                         ),
-                        child: Text('HOME', style: TextStyle(fontSize: 14)),
+                        child: Text(
+                          'HOME',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.lightText,
+                          ),
+                        ),
                       ),
                     ),
                   ],

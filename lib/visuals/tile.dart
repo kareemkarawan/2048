@@ -17,7 +17,11 @@ class Tile extends StatelessWidget {
       child: Center(
         child: Text(
           value == 0 ? '' : value.toString(),
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: value >= 1000 ? 28 : 36,
+            fontWeight: FontWeight.bold,
+            color: value <= 4 ? Color(0xFF776E65) : Colors.white,
+          ),
         ),
       ),
     );

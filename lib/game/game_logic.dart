@@ -12,12 +12,15 @@ class GameLogic {
   bool gameOver = false;
   int? newTileIndex;
   int nextTileId = 0;
+  int bestScore = 0;
 
   int score = 0;
 
+  final void Function(int score)? onGameOver;
+
   final Random _random = Random();
 
-  GameLogic() {
+  GameLogic({this.onGameOver}) {
     _addRandomTile();
     _addRandomTile();
   }
@@ -55,6 +58,9 @@ class GameLogic {
           fullTiles[i].value == fullTiles[i + 1].value) {
         result.add(TileModel(id: nextTileId++, value: fullTiles[i].value * 2));
         score += fullTiles[i].value * 2;
+        if (bestScore < score) {
+          bestScore = score;
+        }
         i += 2;
       } else {
         result.add(fullTiles[i]);
@@ -141,6 +147,7 @@ class GameLogic {
         }
         if (gameEnd) {
           gameOver = true;
+          onGameOver?.call(score);
         }
       }
     } else {
