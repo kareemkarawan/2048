@@ -7,6 +7,8 @@ import 'package:_2048_game/services/score_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:_2048_game/visuals/tile.dart';
 
+import 'dart:math';
+
 class GameScreen extends StatefulWidget {
   final int bestScore;
   final GameSaveModel? savedGame;
@@ -42,6 +44,8 @@ class _GameScreenState extends State<GameScreen> {
     if (widget.savedGame != null) {
       game.board = widget.savedGame!.board;
       game.score = widget.savedGame!.score;
+
+      game.nextTileId = game.board.map((tile) => tile.id).reduce(max) + 1;
     }
     controls = Controls();
     _focusNode.requestFocus();
@@ -166,10 +170,13 @@ class _GameScreenState extends State<GameScreen> {
             left: 20,
             child: IconButton(
               onPressed: () async {
+                print('BACK PRESSED');
+                print('SCORE: ${game.score}');
                 if (game.score != 0) {
                   await GameStorage.saveCurrentGame(
                     GameSaveModel(score: game.score, board: game.board),
                   );
+                  print("GAME SAVED");
                 }
                 Navigator.pop(context);
               },
@@ -258,10 +265,13 @@ class _GameScreenState extends State<GameScreen> {
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () async {
+                        print('BACK PRESSED');
+                        print('SCORE: ${game.score}');
                         if (game.score != 0) {
                           await GameStorage.saveCurrentGame(
                             GameSaveModel(score: game.score, board: game.board),
                           );
+                          print("GAME SAVED");
                         }
                         Navigator.pop(context);
                       },

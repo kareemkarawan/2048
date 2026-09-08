@@ -96,10 +96,7 @@ class GameLogic {
       }
     }
     if (direction == Directions.up) {
-      result = List.generate(
-        16,
-        (index) => TileModel(id: nextTileId++, value: 0),
-      );
+      result = List.generate(16, (index) => TileModel(id: -1, value: 0));
       for (int i = 0; i < 4; i++) {
         List<TileModel> tempLine = [];
         for (int j = i; j <= i + 12; j += 4) {
@@ -112,10 +109,7 @@ class GameLogic {
       }
     }
     if (direction == Directions.down) {
-      result = List.generate(
-        16,
-        (index) => TileModel(id: nextTileId++, value: 0),
-      );
+      result = List.generate(16, (index) => TileModel(id: -1, value: 0));
       for (int i = 0; i < 4; i++) {
         List<TileModel> tempLine = [];
         for (int j = i + 12; j >= i; j -= 4) {

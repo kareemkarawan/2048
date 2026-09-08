@@ -25,6 +25,7 @@ class _StartScreenState() extends State<StartScreen> {
 
   Future<void> loadGame() async {
     final game = await GameStorage.getCurrentGame();
+    print(game.score);
 
     setState(() {
       currentGame = game;
@@ -65,7 +66,7 @@ class _StartScreenState() extends State<StartScreen> {
                   ElevatedButton(
                     onPressed: () async {
                       await GameStorage.clearCurrentGame();
-                      Navigator.push(
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => GameScreen(
@@ -73,6 +74,8 @@ class _StartScreenState() extends State<StartScreen> {
                           ),
                         ),
                       );
+                      await loadGame();
+                      await loadScores();
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
