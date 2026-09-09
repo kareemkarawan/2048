@@ -1,7 +1,7 @@
 import 'package:_2048_game/constants/app_colors.dart';
 import 'package:_2048_game/models/game_save_model.dart';
 import 'package:_2048_game/services/game_storage.dart';
-import 'package:_2048_game/visuals/game_screen.dart';
+import 'package:_2048_game/screens/game_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:_2048_game/services/score_storage.dart';
 

@@ -12,7 +12,7 @@ class Tile extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: tile_colors(value),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(7),
       ),
       child: Center(
         child: Text(

@@ -2,12 +2,17 @@ import 'package:_2048_game/constants/app_colors.dart';
 import 'package:_2048_game/game/controls.dart';
 import 'package:_2048_game/game/game_logic.dart';
 import 'package:_2048_game/models/game_save_model.dart';
+
 import 'package:_2048_game/services/game_storage.dart';
 import 'package:_2048_game/services/score_storage.dart';
+import 'package:_2048_game/visuals/game_board.dart';
 import 'package:flutter/material.dart';
-import 'package:_2048_game/visuals/tile.dart';
+import 'package:flutter/services.dart';
+import 'package:window_manager_plus/window_manager_plus.dart' as wmp;
 
 import 'dart:math';
+
+import '../game/directions.dart';
 
 class GameScreen extends StatefulWidget {
   final int bestScore;
@@ -19,7 +24,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with wmp.WindowListener {
+  int? pipWindowId;
   late GameLogic game;
   late final Controls controls;
   final FocusNode _focusNode = FocusNode();
@@ -30,12 +36,101 @@ class _GameScreenState extends State<GameScreen> {
     if (direction != null) {
       game.move(direction);
       setState(() {});
+
+      sendGameData();
     }
+  }
+
+  Future<void> enterPip() async {
+    if (pipWindowId != null) {
+      return;
+    }
+
+    final pipWindow = await wmp.WindowManagerPlus.createWindow(['pip']);
+
+    if (pipWindow == null) {
+      return;
+    }
+
+    pipWindowId = pipWindow.id;
+  }
+
+  @override
+  void onWindowClose([int? windowId]) {
+    print('WINDOW CLOSED: $windowId');
+    print('PIP WINDOW ID: $pipWindowId');
+
+    if (windowId == pipWindowId) {
+      pipWindowId = null;
+      print('PIP ID CLEARED');
+    }
+  }
+
+  Future<void> sendGameData() async {
+    final id = pipWindowId;
+    if (id == null) {
+      return;
+    }
+    try {
+      await wmp.WindowManagerPlus.current.invokeMethodToWindow(
+        id,
+        'updateGame',
+        {
+          'score': game.score,
+          'bestScore': game.bestScore,
+          'gameOver': game.gameOver,
+          'board': game.board
+              .map((tile) => {'id': tile.id, 'value': tile.value})
+              .toList(),
+        },
+      );
+    } catch (_) {
+      pipWindowId = null;
+    }
+  }
+
+  @override
+  Future<dynamic> onEventFromWindow(
+    String eventName,
+    int fromWindowId,
+    dynamic arguments,
+  ) async {
+    if (eventName == 'pipReady') {
+      await sendGameData();
+    }
+    if (eventName == 'move') {
+      final direction = arguments.toString();
+
+      switch (direction) {
+        case 'up':
+          game.move(Directions.up);
+          break;
+
+        case 'down':
+          game.move(Directions.down);
+          break;
+
+        case 'left':
+          game.move(Directions.left);
+          break;
+
+        case 'right':
+          game.move(Directions.right);
+          break;
+      }
+      setState(() {});
+      await sendGameData();
+    }
+    return null;
   }
 
   @override
   void initState() {
     super.initState();
+
+    wmp.WindowManagerPlus.current.addListener(this);
+    wmp.WindowManagerPlus.addGlobalListener(this);
+
     game = GameLogic(
       onGameOver: (score) async {
         await ScoreStorage.saveScore(score);
@@ -53,6 +148,12 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return KeyboardListener(
       autofocus: true,
@@ -66,6 +167,7 @@ class _GameScreenState extends State<GameScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -119,48 +221,8 @@ class _GameScreenState extends State<GameScreen> {
                   ),
 
                   const SizedBox(height: 30),
-
-                  Container(
-                    width: 500,
-                    height: 500,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFBBADA0),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Stack(
-                      children: [
-                        for (int index = 0; index < 16; index++)
-                          Positioned(
-                            left: (index % 4) * 122.5,
-                            top: (index ~/ 4) * 122.5,
-                            width: 112.5,
-                            height: 112.5,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFCDC1B4),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                          ),
-                        for (int index = 0; index < 16; index++)
-                          if (game.board[index].value != 0)
-                            AnimatedPositioned(
-                              key: ValueKey(game.board[index].id),
-                              duration: const Duration(milliseconds: 100),
-                              curve: Curves.easeOut,
-                              left: (index % 4) * 122.5,
-                              top: (index ~/ 4) * 122.5,
-                              width: 112.5,
-                              height: 112.5,
-                              child: Tile(
-                                id: game.board[index].id,
-                                value: game.board[index].value,
-                              ),
-                            ),
-                      ],
-                    ),
-                  ),
+                  Flexible(child: GameBoard(game: game, pip: false)),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -170,17 +232,24 @@ class _GameScreenState extends State<GameScreen> {
             left: 20,
             child: IconButton(
               onPressed: () async {
-                print('BACK PRESSED');
-                print('SCORE: ${game.score}');
                 if (game.score != 0) {
                   await GameStorage.saveCurrentGame(
                     GameSaveModel(score: game.score, board: game.board),
                   );
-                  print("GAME SAVED");
                 }
                 Navigator.pop(context);
               },
               icon: const Icon(Icons.arrow_back),
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            left: 20,
+            child: IconButton(
+              onPressed: () async {
+                enterPip();
+              },
+              icon: const Icon(Icons.picture_in_picture),
             ),
           ),
           if (game.gameOver)
@@ -265,13 +334,10 @@ class _GameScreenState extends State<GameScreen> {
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () async {
-                        print('BACK PRESSED');
-                        print('SCORE: ${game.score}');
                         if (game.score != 0) {
                           await GameStorage.saveCurrentGame(
                             GameSaveModel(score: game.score, board: game.board),
                           );
-                          print("GAME SAVED");
                         }
                         Navigator.pop(context);
                       },
